@@ -10,6 +10,7 @@ instance (Eq a) => Eq (Arbore a) where
     (Nod _ x _) == (Frunza y)   = x == y
     (Frunza x)  == (Nod _ y _)  = x == y
     (Nod _ x _) == (Nod _ y _)  = x == y
+    _ == _ = False
 
 instance (Ord a) => Ord (Arbore a) where
     Vid <= _ = True
