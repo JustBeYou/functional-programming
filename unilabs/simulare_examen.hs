@@ -20,13 +20,19 @@ instance (Ord a) => Ord (Arbore a) where
     (Frunza x)  <= (Nod _ y _)  = x <= y
     (Nod _ x _) <= (Nod _ y _)  = x <= y
 
-esteArboreCautare :: (Eq a, Ord a) => Arbore a -> Bool
+esteArboreCautare :: (Eq a, Ord a, Bounded a) => Arbore a -> Bool
 esteArboreCautare Vid = True
 esteArboreCautare (Frunza _) = True
-esteArboreCautare (Nod stanga x dreapta) = and [stanga < (Frunza x),
-                                                (Frunza x) < dreapta,
-                                                esteArboreCautare stanga,
-                                                esteArboreCautare dreapta]
+esteArboreCautare (Nod stanga x dreapta) = and [
+    esteArboreCautareUtil stanga minBound x,
+    esteArboreCautareUtil dreapta x maxBound]
+
+esteArboreCautareUtil :: (Eq a, Ord a, Bounded a) => Arbore a -> a -> a -> Bool
+esteArboreCautareUtil Vid _ _ = True
+esteArboreCautareUtil (Frunza x) min max = x > min && x < max 
+esteArboreCautareUtil (Nod stanga x dreapta) min max = and [
+    esteArboreCautareUtil stanga min x,
+    esteArboreCautareUtil dreapta x max]
 
 insereaza :: (Eq a, Ord a) => a -> Arbore a -> Arbore a
 insereaza x Vid = Frunza x
@@ -63,3 +69,24 @@ main = do
     print arb
     print $ fmap (+25) arb
     print $ foldr (+) 0 arb
+
+    -- invalid
+    let arb1 = Nod (Nod Vid 2 (Frunza 5)) 4 Vid :: Arbore Int
+    print arb1 
+    print $ esteArboreCautare arb1
+
+    -- valid
+    let arb2 = Nod (Frunza 3) 4 (Frunza 5) :: Arbore Int
+    print arb2
+    print $ esteArboreCautare arb2
+
+    -- invalid (cu dublura)
+    let arb3 = Nod (Frunza 3) 4 (Nod (Frunza 5) 5 Vid) :: Arbore Int
+    print arb3
+    print $ esteArboreCautare arb3
+
+    -- invalid (cu dublura)
+    let arb4 = Nod (Frunza 3) 4 (Nod Vid 5 (Frunza 5)) :: Arbore Int
+    print arb4
+    print $ esteArboreCautare arb4
+
