@@ -28,7 +28,7 @@ esteArboreCautare (Nod stanga x dreapta) = and [
     esteArboreCautareUtil dreapta x maxBound]
 
 esteArboreCautareUtil :: (Eq a, Ord a, Bounded a) => Arbore a -> a -> a -> Bool
-esteArboreCautareUtil Vid _ _ = True
+esteArboreCautareUtil Vid min max = min < max
 esteArboreCautareUtil (Frunza x) min max = x > min && x < max 
 esteArboreCautareUtil (Nod stanga x dreapta) min max = and [
     esteArboreCautareUtil stanga min x,
