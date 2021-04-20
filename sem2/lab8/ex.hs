@@ -1,28 +1,32 @@
 module Main where
 
-newtype Parser a = Parser { apply :: String->[(a,String)] }
+import Data.Char
+import Control.Monad
+import Control.Applicative
 
-parse :: Parser a -> String -> a
-parse m s = head [x | (x,t) <- apply m s, t == ""]
+newtype Parser a = Parser { apply :: String->[(a, String)] }
 
 instance Monad Parser where
     return a = Parser $ \s -> [(a, s)]
-    ma >>= k = Parser $ \s -> [(b, s'') | (a, s') <- apply ma s, (b, s'') <- apply (k a) s']
+    ma >>= k = Parser $ \s -> concat [apply (k a) s' | (a, s') <- apply ma s]
 
 instance Applicative Parser where
     pure = return
-    mf <*> ma = do { f <- mf; f <$> ma; }
+    mf <*> ma = do { f <- mf; a <- ma; return $ f a }
 
 instance Functor Parser where
-    fmap f ma = f <$> ma
+    fmap f ma = pure f <*> ma
 
-empty :: Parser a
-empty = Parser $ const []
+instance Alternative Parser where
+    empty = Parser $ const  []
+    ma <|> mb = Parser $ \s -> case apply ma s of
+        [] -> apply mb s
+        (x:_) -> [x]
 
 anychar :: Parser Char
 anychar = Parser f where
     f [] = []
-    f (c:s) = [(c,s)]
+    f (c:s) = [(c, s)]
 
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy prop = do
@@ -34,32 +38,33 @@ char :: Char -> Parser Char
 char c = satisfy (== c)
 
 string :: String -> Parser String
-string [] = empty
-string [c] = do 
-    c' <- char c
-    return [c']
-string s = do 
-    c <- char $ head s
-    s' <- string $ tail s
-    return (c:s')
+string [] = return ""
+string s = mapM char s
 
-three :: Parser (Char, Char)
-three = do
-    a <- anychar
-    b <- anychar
-    c <- anychar
-    return (a,c)
+anycharord :: Parser Int
+anycharord = fmap ord anychar
 
-s = "12345"
+repeatM :: Parser a -> Parser [a]
+repeatM p = do 
+          x <- p
+          xs <- repeatM p <|> return []
+          return ( x : xs )
+
+howmany :: Char -> Parser Int
+howmany c = fmap length (repeatM $ char c)
+
+main :: IO ()
 main = do
-    print "lab 8"
-    print $ apply anychar s
-    print $ apply (satisfy (== 'c')) s
-    print $ apply (satisfy (== 'c')) ""
-    print $ apply (satisfy (== '1')) s
+    let s = "12345"
     print $ apply (string "123") s
     print $ apply (string "12") s
     print $ apply (string "1") s
     print $ apply (string []) s
-    print $ apply three "12345"
-    print $ apply three "12"
+    print $ apply anycharord s
+    print $ apply (char 'a' <|> char 'b') s
+    print $ apply (char '1' <|> char 'b') s
+    print $ apply (char 'a' <|> char '1') s
+    print $ apply (char '1' <|> char '1') s
+    print $ apply (howmany 'a') "aaab"
+    print $ apply (howmany 'a') "aaaaab"
+    print $ apply (howmany 'a') "b"
